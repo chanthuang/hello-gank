@@ -1,11 +1,13 @@
 package com.chanthuang.hellogank.activity;
 
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.TextView;
 
+import com.chanthuang.hellogank.R;
 import com.chanthuang.hellogank.model.Gank;
+import com.chanthuang.hellogank.view.GankListItemView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,15 +42,15 @@ public class GankListAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        TextView textView;
+        GankListItemView itemView;
         if (convertView == null) {
-            textView = new TextView(parent.getContext());
-            convertView = textView;
+            itemView = (GankListItemView) LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.gank_list_item, parent, false);
         } else {
-            textView = (TextView) convertView;
+            itemView = (GankListItemView) convertView;
         }
         Gank gank = getItem(position);
-        textView.setText(gank.toString());
-        return convertView;
+        itemView.render(gank);
+        return itemView;
     }
 }
