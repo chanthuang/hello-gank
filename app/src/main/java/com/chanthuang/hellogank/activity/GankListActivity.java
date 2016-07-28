@@ -23,6 +23,7 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -72,24 +73,9 @@ public class GankListActivity extends AppCompatActivity {
 
     @OnClick(R.id.fab)
     protected void getGankData() {
-        Calendar today = Calendar.getInstance();
+        final Calendar today = Calendar.getInstance();
         today.setTime(new Date(System.currentTimeMillis()));
-        GankService gankService = ServiceManager.getInstance().getGankService();
-        gankService.getGankData(today.get(Calendar.YEAR), today.get(Calendar.MONTH) + 1, today.get(Calendar.DAY_OF_MONTH))
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .map(new Func1<GankData, GankData.GankResult>() {
-                    @Override
-                    public GankData.GankResult call(GankData gankData) {
-                        return gankData.results;
-                    }
-                })
-                .map(new Func1<GankData.GankResult, List<Gank>>() {
-                    @Override
-                    public List<Gank> call(GankData.GankResult gankResult) {
-                        return gankResult.toList();
-                    }
-                })
+        getData(today.get(Calendar.YEAR), today.get(Calendar.MONTH) + 1, today.get(Calendar.DAY_OF_MONTH))
                 .subscribe(new Subscriber<List<Gank>>() {
                     @Override
                     public void onCompleted() {
@@ -103,11 +89,60 @@ public class GankListActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(List<Gank> ganks) {
-                        mContentTextView.setVisibility(View.GONE);
-                        notifyAdapter(ganks);
+                        if (ganks == null || ganks.size() == 0) {
+                            // try last day
+                            today.add(Calendar.DAY_OF_MONTH, -1);
+                            getData(today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH))
+                                    .subscribe(new Subscriber<List<Gank>>() {
+                                        @Override
+                                        public void onCompleted() {
+
+                                        }
+
+                                        @Override
+                                        public void onError(Throwable e) {
+                                            mContentTextView.setText("Error: " + e.getMessage());
+                                            mContentTextView.setVisibility(View.VISIBLE);
+                                        }
+
+                                        @Override
+                                        public void onNext(List<Gank> ganks) {
+                                            if (ganks == null || ganks.size() == 0) {
+                                                mContentTextView.setVisibility(View.VISIBLE);
+                                                mContentTextView.setText("No datas");
+                                            } else {
+                                                mContentTextView.setVisibility(View.GONE);
+                                                notifyAdapter(ganks);
+                                            }
+                                        }
+                                    });
+                        } else {
+                            mContentTextView.setVisibility(View.GONE);
+                            notifyAdapter(ganks);
+                        }
                     }
                 });
     }
+
+    private Observable<List<Gank>> getData(int year, int month, int day) {
+        GankService gankService = ServiceManager.getInstance().getGankService();
+        return gankService.getGankData(year, month, day)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .map(new Func1<GankData, GankData.GankResult>() {
+                    @Override
+                    public GankData.GankResult call(GankData gankData) {
+                        return gankData.results;
+                    }
+                })
+                .map(new Func1<GankData.GankResult, List<Gank>>() {
+                    @Override
+                    public List<Gank> call(GankData.GankResult gankResult) {
+                        return gankResult.toList();
+                    }
+                });
+    }
+
 
     private void notifyAdapter(List<Gank> ganks) {
         mGankListAdapter.setData(ganks);
