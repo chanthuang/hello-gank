@@ -3,6 +3,8 @@ package com.chanthuang.hellogank.Service;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.util.HashMap;
+
 import retrofit.GsonConverterFactory;
 import retrofit.Retrofit;
 import retrofit.RxJavaCallAdapterFactory;
@@ -13,28 +15,43 @@ public class ServiceManager {
 
     final Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").serializeNulls().create();
 
+    private Retrofit mRetrofit;
+
     private ServiceManager() {
-        Retrofit retrofit = new Retrofit.Builder()
+        mRetrofit = new Retrofit.Builder()
                 .baseUrl(HOST)
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .build();
-        mGankService = retrofit.create(GankService.class);
     }
 
     private static ServiceManager mServiceManagerInstance;
 
-    public static ServiceManager getInstance() {
+    private static ServiceManager getInstance() {
         if (mServiceManagerInstance == null) {
             mServiceManagerInstance = new ServiceManager();
         }
         return mServiceManagerInstance;
     }
 
-    private GankService mGankService;
+    private HashMap<Class, Object> mMap = new HashMap<>();
 
-    public GankService getGankService() {
-        return mGankService;
+    public static <T> T of(Class<T> clazz) {
+        return getInstance().getService(clazz);
     }
 
+    @SuppressWarnings("unchecked")
+    private <T> T getService(Class<T> clazz) {
+        if (!mMap.containsKey(clazz)) {
+            T service = create(clazz);
+            mMap.put(clazz, service);
+            return service;
+        } else {
+            return (T) mMap.get(clazz);
+        }
+    }
+
+    private <T> T create(Class<T> clazz) {
+        return mRetrofit.create(clazz);
+    }
 }

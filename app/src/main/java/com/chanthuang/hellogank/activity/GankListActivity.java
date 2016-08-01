@@ -56,7 +56,7 @@ public class GankListActivity extends AppCompatActivity {
     }
 
     protected void getGankHistory() {
-        GankService gankService = ServiceManager.getInstance().getGankService();
+        GankService gankService = ServiceManager.of(GankService.class);
         gankService.getGankHistory()
                 .subscribe(new Action1<GankHistory>() {
                     @Override
@@ -125,7 +125,7 @@ public class GankListActivity extends AppCompatActivity {
     }
 
     private Observable<List<Gank>> getData(int year, int month, int day) {
-        GankService gankService = ServiceManager.getInstance().getGankService();
+        GankService gankService = ServiceManager.of(GankService.class);
         return gankService.getGankData(year, month, day)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
